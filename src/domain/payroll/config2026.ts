@@ -1,0 +1,26 @@
+export const CONFIG_2026 = {
+  minWage: 4806,
+  minHourlyRateZlecenie: 31.4,
+  annualBaseLimit: 282600,
+  rates: {
+    emerytalnaEmployee: 0.0976,
+    emerytalnaEmployer: 0.0976,
+    rentowaEmployee: 0.015,
+    rentowaEmployer: 0.065,
+    chorobowa: 0.0245,
+    funduszPracy: 0.0245,
+    fgsp: 0.001,
+    zdrowotna: 0.09,
+  },
+  pit: {
+    threshold1: 120000,
+    rate1: 0.12,
+    rate2: 0.32,
+    taxReducingMonthly: 300,
+    standardKUPMonthly: 250,
+    increasedKUPMonthly: 300,
+    zlecenieKUPRate: 0.2,
+    zlecenieKUPRatePrawaAutorskie: 0.5,
+    ulgaMlodychLimit: 85528,
+  },
+} as const;

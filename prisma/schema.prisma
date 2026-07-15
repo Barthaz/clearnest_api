@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+}
+
+enum ShiftStatus {
+  scheduled
+  unassigned
+  saved
+}
+
+enum VatStatus {
+  active
+  exempt
+}
+
+enum TaxForm {
+  ryczalt
+  skala
+  liniowy
+}
+
+enum ZusType {
+  preferencyjny
+  standardowy
+  maly
+}
+
+enum EmploymentForm {
+  zlecenie
+  etat
+}
+
+enum HealthContributionMode {
+  auto
+  manual
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Char(36)
+  username     String   @unique @db.VarChar(100)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  role         UserRole @default(MANAGER)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Facility {
+  id               String   @id @default(uuid()) @db.Char(36)
+  name             String   @db.VarChar(255)
+  address          String   @db.VarChar(500)
+  areaM2           Decimal  @map("area_m2") @db.Decimal(10, 2)
+  cleaningDays     Json     @map("cleaning_days")
+  visitsPerWeek    Int      @map("visits_per_week")
+  hoursPerVisit    Decimal  @map("hours_per_visit") @db.Decimal(5, 2)
+  startTime        String   @default("08:00") @map("start_time") @db.VarChar(5)
+  monthlyRateGross Decimal  @map("monthly_rate_gross") @db.Decimal(12, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  shifts   Shift[]
+  skipDays FacilitySkipDay[]
+
+  @@map("facilities")
+}
+
+model Employee {
+  id                  String         @id @default(uuid()) @db.Char(36)
+  name                String         @db.VarChar(255)
+  hourlyRateGross     Decimal        @map("hourly_rate_gross") @db.Decimal(10, 2)
+  employmentForm      EmploymentForm @default(zlecenie) @map("employment_form")
+  ulgaMlodych         Boolean        @default(false) @map("ulga_mlodych")
+  student             Boolean        @default(false)
+  innyTytul           Boolean        @default(false) @map("inny_tytul")
+  dobrowolneChorobowe Boolean        @default(false) @map("dobrowolne_chorobowe")
+  fpExempt            Boolean        @default(false) @map("fp_exempt")
+  kupPodwyzszone      Boolean        @default(false) @map("kup_podwyzszone")
+  pit2                Boolean        @default(true)
+  wymiarEtatu         Decimal        @default(1) @map("wymiar_etatu") @db.Decimal(4, 2)
+  username            String?        @unique @db.VarChar(100)
+  passwordHash        String?        @map("password_hash") @db.VarChar(255)
+  panelEnabled        Boolean        @default(false) @map("panel_enabled")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  shifts Shift[]
+
+  @@map("employees")
+}
+
+model Shift {
+  id         String      @id @default(uuid()) @db.Char(36)
+  facilityId String      @map("facility_id") @db.Char(36)
+  employeeId String?     @map("employee_id") @db.Char(36)
+  shiftDate  DateTime    @map("shift_date") @db.Date
+  hours      Decimal     @db.Decimal(5, 2)
+  startTime  String      @map("start_time") @db.VarChar(5)
+  endTime    String      @map("end_time") @db.VarChar(5)
+  status     ShiftStatus @default(unassigned)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  facility Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@unique([facilityId, shiftDate])
+  @@index([shiftDate])
+  @@index([employeeId, shiftDate])
+  @@map("shifts")
+}
+
+model CustomHoliday {
+  holidayDate DateTime @id @map("holiday_date") @db.Date
+  name        String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("custom_holidays")
+}
+
+model FacilitySkipDay {
+  skipDate   DateTime @map("skip_date") @db.Date
+  facilityId String   @map("facility_id") @db.Char(36)
+  name       String?  @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@id([skipDate, facilityId])
+  @@index([skipDate, facilityId])
+  @@map("facility_skip_days")
+}
+
+model SystemSettings {
+  id                              Int                    @id @default(1)
+  vatStatus                       VatStatus              @default(exempt) @map("vat_status")
+  vatRate                         Decimal                @default(0.23) @map("vat_rate") @db.Decimal(5, 4)
+  zusMonthly                      Decimal                @default(1519.19) @map("zus_monthly") @db.Decimal(10, 2)
+  zusType                         ZusType                @default(standardowy) @map("zus_type")
+  healthContributionMode          HealthContributionMode @default(auto) @map("health_contribution_mode")
+  healthContributionManualMonthly Decimal                @default(432.54) @map("health_contribution_manual_monthly") @db.Decimal(10, 2)
+  healthRateOverrideEnabled       Boolean                @default(false) @map("health_rate_override_enabled")
+  healthRateOverride              Decimal                @default(0.09) @map("health_rate_override") @db.Decimal(5, 4)
+  taxForm                         TaxForm                @default(ryczalt) @map("tax_form")
+  ryczaltRate                     Decimal                @default(0.085) @map("ryczalt_rate") @db.Decimal(5, 4)
+  additionalCosts                 Decimal                @default(500) @map("additional_costs") @db.Decimal(10, 2)
+  vatExemptionThreshold           Decimal                @default(200000) @map("vat_exemption_threshold") @db.Decimal(12, 2)
+  updatedAt                       DateTime               @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
