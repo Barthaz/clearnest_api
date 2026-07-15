@@ -14,9 +14,22 @@ async function bootstrap() {
     prefix: '/public/',
   });
 
+  const corsOrigins = configService.get<string[]>('corsOrigins') ?? [
+    'http://localhost:5173',
+  ];
+
   app.enableCors({
-    origin: configService.get<string[]>('corsOrigins'),
+    origin: (origin, callback) => {
+      if (!origin || corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    optionsSuccessStatus: 204,
   });
 
   app.setGlobalPrefix(configService.get<string>('apiPrefix') ?? 'api');
