@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import type {
   CustomHolidayDto,
   FacilityDto,
@@ -90,7 +90,7 @@ export function generateShiftsForMonth(
         }
       } else {
         newShifts.push({
-          id: uuidv4(),
+          id: randomUUID(),
           facilityId: facility.id,
           employeeId: undefined,
           date: dateStr,
