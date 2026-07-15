@@ -6,7 +6,10 @@ export default () => ({
     secret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
     expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   },
-  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+  corsOrigins: (
+    process.env.CORS_ORIGINS ??
+    'http://localhost:5173,https://panel.clearnest.pl,https://clearnest.pl'
+  )
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
