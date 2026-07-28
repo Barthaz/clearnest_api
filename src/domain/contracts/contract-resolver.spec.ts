@@ -64,16 +64,32 @@ describe('contract-resolver', () => {
     expect(contractsOverlap('2026-01-01', undefined, '2026-06-01', undefined)).toBe(true);
   });
 
-  it('prorates revenue for partial month coverage', () => {
+  it('uses full monthly rate for partial month coverage', () => {
     const contracts = [
       contract({
         id: 'c1',
         startDate: '2026-09-15',
+        endDate: '2026-09-28',
         monthlyRateGross: 3000,
       }),
     ];
-    const revenue = calculateFacilityMonthlyRevenueGross(contracts, '2026-09');
-    expect(revenue).toBeGreaterThan(0);
-    expect(revenue).toBeLessThan(3000);
+    expect(calculateFacilityMonthlyRevenueGross(contracts, '2026-09')).toBe(3000);
+  });
+
+  it('uses latest contract full rate when two sequential contracts share a month', () => {
+    const contracts = [
+      contract({
+        id: 'c1',
+        startDate: '2026-09-01',
+        endDate: '2026-09-14',
+        monthlyRateGross: 1000,
+      }),
+      contract({
+        id: 'c2',
+        startDate: '2026-09-15',
+        monthlyRateGross: 1500,
+      }),
+    ];
+    expect(calculateFacilityMonthlyRevenueGross(contracts, '2026-09')).toBe(1500);
   });
 });
