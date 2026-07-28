@@ -50,6 +50,7 @@ export class FacilitiesService {
       return {
         ...facility,
         activeContract: resolveContractForMonth(contracts, monthKey),
+        contracts,
       };
     });
   }

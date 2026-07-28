@@ -33,6 +33,7 @@ export interface FacilityContractDto {
 
 export interface FacilityListItemDto extends FacilityDto {
   activeContract: FacilityContractDto | null;
+  contracts: FacilityContractDto[];
 }
 
 export interface FacilityDetailDto extends FacilityDto {
