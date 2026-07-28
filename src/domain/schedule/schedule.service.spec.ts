@@ -76,6 +76,23 @@ describe('schedule.service', () => {
     expect(keys.has('fac-1:2026-09-16')).toBe(true);
   });
 
+  it('expects shifts in later months for open-ended contract', () => {
+    const inputs = [
+      facilityInput('fac-1', [
+        contract({
+          id: 'c1',
+          startDate: '2026-08-01',
+          endDate: undefined,
+          cleaningDays: [1],
+        }),
+      ]),
+    ];
+
+    expect(getExpectedShiftKeysForMonth('2026-08', inputs, [], []).size).toBeGreaterThan(0);
+    expect(getExpectedShiftKeysForMonth('2026-09', inputs, [], []).size).toBeGreaterThan(0);
+    expect(getExpectedShiftKeysForMonth('2026-10', inputs, [], []).size).toBeGreaterThan(0);
+  });
+
   it('flags sync when orphan shifts exist outside contract coverage', () => {
     const inputs = [
       facilityInput('fac-1', [

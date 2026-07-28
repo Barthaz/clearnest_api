@@ -24,6 +24,10 @@ export function toNumber(value: { toNumber(): number } | number): number {
   return typeof value === 'number' ? value : value.toNumber();
 }
 
+function normalizeCleaningDays(cleaningDays: Weekday[]): Weekday[] {
+  return cleaningDays.map((day) => Number(day) as Weekday);
+}
+
 export function formatDateFromDb(date: Date): string {
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -59,7 +63,7 @@ export function mapFacilityContract(c: FacilityContract): FacilityContractDto {
     hoursPerVisit: toNumber(c.hoursPerVisit),
     startTime: c.startTime,
     endTime: c.endTime,
-    cleaningDays: c.cleaningDays as Weekday[],
+    cleaningDays: normalizeCleaningDays(c.cleaningDays as Weekday[]),
     visitsPerWeek: c.visitsPerWeek,
     updatedAt: toIsoString(c.updatedAt),
   };

@@ -2,6 +2,7 @@ import type { FacilityContractDto } from '../types';
 import {
   calculateFacilityMonthlyRevenueGross,
   contractsOverlap,
+  monthOverlapsContract,
   resolveContractForDate,
   resolveContractForMonth,
 } from './contract-resolver';
@@ -18,6 +19,7 @@ function contract(
     endTime: '11:00',
     cleaningDays: [0, 2, 4],
     visitsPerWeek: 3,
+    updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -62,6 +64,13 @@ describe('contract-resolver', () => {
     expect(contractsOverlap('2026-01-01', '2026-06-30', '2026-06-01', '2026-12-31')).toBe(true);
     expect(contractsOverlap('2026-01-01', '2026-03-31', '2026-05-01', '2026-12-31')).toBe(false);
     expect(contractsOverlap('2026-01-01', undefined, '2026-06-01', undefined)).toBe(true);
+  });
+
+  it('treats empty endDate as open-ended', () => {
+    const contracts = [
+      contract({ id: 'c1', startDate: '2026-08-01', endDate: '' as unknown as undefined }),
+    ];
+    expect(monthOverlapsContract('2026-09', contracts[0])).toBe(true);
   });
 
   it('uses full monthly rate for partial month coverage', () => {

@@ -5,9 +5,15 @@ function compareDates(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
+function normalizeEndDate(endDate?: string): string | undefined {
+  if (endDate == null || endDate === '') return undefined;
+  return endDate;
+}
+
 export function isDateWithinContract(date: string, contract: FacilityContractDto): boolean {
+  const endDate = normalizeEndDate(contract.endDate);
   if (compareDates(date, contract.startDate) < 0) return false;
-  if (contract.endDate && compareDates(date, contract.endDate) > 0) return false;
+  if (endDate && compareDates(date, endDate) > 0) return false;
   return true;
 }
 
@@ -17,7 +23,7 @@ export function monthOverlapsContract(monthKey: string, contract: FacilityContra
   const monthEnd = formatDateFromDb(new Date(Date.UTC(year, month, 0)));
 
   const contractStart = contract.startDate;
-  const contractEnd = contract.endDate ?? '9999-12-31';
+  const contractEnd = normalizeEndDate(contract.endDate) ?? '9999-12-31';
 
   return compareDates(contractStart, monthEnd) <= 0 && compareDates(contractEnd, monthStart) >= 0;
 }
