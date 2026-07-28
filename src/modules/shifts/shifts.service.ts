@@ -45,18 +45,18 @@ export class ShiftsService {
   }
 
   async generate(month: string) {
-    const ctx = await this.dataContext.loadAppContext();
+    const ctx = await this.dataContext.loadAppContext(month);
     const generated = generateShiftsForMonth(
       month,
       ctx.facilityScheduleInputs,
-      ctx.shifts.filter((s) => s.date.startsWith(month)),
+      ctx.shifts,
       ctx.customHolidays,
       ctx.facilitySkips,
       ctx.shifts,
     );
 
     await this.persistShifts(generated, month);
-    return { shifts: generated.filter((s) => s.date.startsWith(month)) };
+    return { shifts: generated };
   }
 
   async assign(shiftId: string, employeeId: string | undefined) {
@@ -155,33 +155,40 @@ export class ShiftsService {
     return shifts.filter((s) => s.employeeId === user.employeeId);
   }
 
+  private static readonly SHIFT_INSERT_BATCH_SIZE = 500;
+  private static readonly SHIFT_PERSIST_TX_TIMEOUT_MS = 30_000;
+
   private async persistShifts(shifts: ShiftDto[], month: string) {
     const monthShifts = shifts.filter((s) => s.date.startsWith(month));
+    const [year, mon] = month.split('-').map(Number);
+    const start = new Date(Date.UTC(year, mon - 1, 1));
+    const end = new Date(Date.UTC(year, mon, 0));
 
-    await this.prisma.$transaction(async (tx) => {
-      const [year, mon] = month.split('-').map(Number);
-      const start = new Date(Date.UTC(year, mon - 1, 1));
-      const end = new Date(Date.UTC(year, mon, 0));
+    const rows = monthShifts.map((shift) => ({
+      id: shift.id,
+      facilityId: shift.facilityId,
+      employeeId: shift.employeeId ?? null,
+      shiftDate: parseDateToDb(shift.date),
+      hours: shift.hours,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      status: shift.status,
+    }));
 
-      await tx.shift.deleteMany({
-        where: { shiftDate: { gte: start, lte: end } },
-      });
-
-      for (const shift of monthShifts) {
-        await tx.shift.create({
-          data: {
-            id: shift.id,
-            facilityId: shift.facilityId,
-            employeeId: shift.employeeId ?? null,
-            shiftDate: parseDateToDb(shift.date),
-            hours: shift.hours,
-            startTime: shift.startTime,
-            endTime: shift.endTime,
-            status: shift.status,
-          },
+    await this.prisma.$transaction(
+      async (tx) => {
+        await tx.shift.deleteMany({
+          where: { shiftDate: { gte: start, lte: end } },
         });
-      }
-    });
+
+        for (let offset = 0; offset < rows.length; offset += ShiftsService.SHIFT_INSERT_BATCH_SIZE) {
+          await tx.shift.createMany({
+            data: rows.slice(offset, offset + ShiftsService.SHIFT_INSERT_BATCH_SIZE),
+          });
+        }
+      },
+      { timeout: ShiftsService.SHIFT_PERSIST_TX_TIMEOUT_MS },
+    );
   }
 
   ensureWorkerReadOnly(user: AuthUserDto) {
