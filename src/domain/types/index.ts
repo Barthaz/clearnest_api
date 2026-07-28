@@ -14,12 +14,34 @@ export interface FacilityDto {
   name: string;
   address: string;
   areaM2: number;
-  cleaningDays: Weekday[];
-  visitsPerWeek: number;
+  updatedAt: string;
+}
+
+export interface FacilityContractDto {
+  id: string;
+  facilityId: string;
+  startDate: string;
+  endDate?: string;
+  monthlyRateGross: number;
   hoursPerVisit: number;
   startTime: string;
-  monthlyRateGross: number;
+  endTime: string;
+  cleaningDays: Weekday[];
+  visitsPerWeek: number;
   updatedAt: string;
+}
+
+export interface FacilityListItemDto extends FacilityDto {
+  activeContract: FacilityContractDto | null;
+}
+
+export interface FacilityDetailDto extends FacilityDto {
+  contracts: FacilityContractDto[];
+}
+
+export interface FacilityScheduleInput {
+  id: string;
+  contracts: FacilityContractDto[];
 }
 
 export interface EmployeeDto {
@@ -151,6 +173,7 @@ export interface MonthlyFinanceReport {
   zusOwner: number;
   healthContributionOwner: number;
   incomeTax: number;
+  incomeTaxHealthCredit: number;
   additionalCosts: number;
   totalCosts: number;
   profitGross: number;
@@ -194,6 +217,6 @@ export const DEFAULT_SETTINGS: Omit<SystemSettingsDto, 'updatedAt'> & { updatedA
   healthRateOverride: 0.09,
   taxForm: 'ryczalt',
   ryczaltRate: 0.085,
-  additionalCosts: 500,
+  additionalCosts: 0,
   vatExemptionThreshold: 200000,
 };

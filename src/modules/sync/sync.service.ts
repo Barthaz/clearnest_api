@@ -50,6 +50,7 @@ export class SyncService {
 
     const [
       facilitiesAgg,
+      contractsAgg,
       employeesAgg,
       settingsRow,
       shiftsAgg,
@@ -57,6 +58,7 @@ export class SyncService {
       skipsAgg,
     ] = await Promise.all([
       this.prisma.facility.aggregate({ _max: { updatedAt: true } }),
+      this.prisma.facilityContract.aggregate({ _max: { updatedAt: true } }),
       this.prisma.employee.aggregate({ _max: { updatedAt: true } }),
       this.prisma.systemSettings.findUnique({ where: { id: 1 } }),
       this.prisma.shift.aggregate({
@@ -76,10 +78,17 @@ export class SyncService {
       .filter(Boolean)
       .sort((a, b) => b!.getTime() - a!.getTime())[0];
 
+    const facilitiesRevision = [
+      facilitiesAgg._max.updatedAt,
+      contractsAgg._max.updatedAt,
+    ]
+      .filter(Boolean)
+      .sort((a, b) => b!.getTime() - a!.getTime())[0];
+
     return {
       month,
-      facilitiesRevision: facilitiesAgg._max.updatedAt
-        ? toIsoString(facilitiesAgg._max.updatedAt)
+      facilitiesRevision: facilitiesRevision
+        ? toIsoString(facilitiesRevision)
         : undefined,
       employeesRevision: employeesAgg._max.updatedAt
         ? toIsoString(employeesAgg._max.updatedAt)
@@ -95,7 +104,7 @@ export class SyncService {
         : undefined,
       needsScheduleSync: needsScheduleSync(
         month,
-        ctx.facilities,
+        ctx.facilityScheduleInputs,
         ctx.shifts,
         ctx.customHolidays,
         ctx.facilitySkips,

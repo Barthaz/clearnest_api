@@ -7,6 +7,7 @@ const PIT_FIRST_BRACKET_RATE = 0.12;
 const PIT_SECOND_BRACKET_RATE = 0.32;
 const PIT_FREE_AMOUNT_ANNUAL = 30000;
 const PIT_FIRST_BRACKET_LIMIT_ANNUAL = 120000;
+const PIT_FREE_AMOUNT_MAX_RELIEF_ANNUAL = PIT_FREE_AMOUNT_ANNUAL * PIT_FIRST_BRACKET_RATE;
 const PIT_LINEAR_RATE = 0.19;
 const HEALTH_MIN_MONTHLY_2026 = 432.54;
 const LINEAR_HEALTH_TAX_DEDUCTION_MONTHLY_LIMIT_2026 = 1175;
@@ -17,6 +18,45 @@ const RYCZALT_HEALTH_BRACKETS_2026 = {
   midMonthly: 830.58,
   highMonthly: 1495.04,
 } as const;
+
+function roundOwnerTax(amount: number): number {
+  return Math.max(0, Math.round(amount));
+}
+
+export function calculateOwnerTaxableIncome(
+  revenueNet: number,
+  settings: SystemSettingsDto,
+  businessCostsDeductible: number,
+): number {
+  if (settings.taxForm === 'ryczalt') return revenueNet;
+  return Math.max(0, revenueNet - businessCostsDeductible - settings.zusMonthly);
+}
+
+export function calculateProgressivePitMonthly(taxableIncome: number): number {
+  if (taxableIncome <= 0) return 0;
+
+  const monthlyFirstLimit = PIT_FIRST_BRACKET_LIMIT_ANNUAL / 12;
+  if (taxableIncome <= monthlyFirstLimit) {
+    return taxableIncome * PIT_FIRST_BRACKET_RATE;
+  }
+
+  return (
+    monthlyFirstLimit * PIT_FIRST_BRACKET_RATE +
+    (taxableIncome - monthlyFirstLimit) * PIT_SECOND_BRACKET_RATE
+  );
+}
+
+export function calculateKwotaWolnaReliefAnnual(annualTaxableIncome: number): number {
+  if (annualTaxableIncome <= 0) return 0;
+  if (annualTaxableIncome <= PIT_FIRST_BRACKET_LIMIT_ANNUAL) {
+    return PIT_FREE_AMOUNT_MAX_RELIEF_ANNUAL;
+  }
+
+  const relief =
+    PIT_FREE_AMOUNT_MAX_RELIEF_ANNUAL -
+    (annualTaxableIncome - PIT_FIRST_BRACKET_LIMIT_ANNUAL) * PIT_FIRST_BRACKET_RATE;
+  return Math.max(0, relief);
+}
 
 export function grossToNetRevenue(
   gross: number,
@@ -42,55 +82,118 @@ export function facilityHourlyRevenue(
 }
 
 export function calculateOwnerIncomeTax(
-  taxableRevenue: number,
+  revenueNet: number,
   settings: SystemSettingsDto,
-  employeeCostsDeductible: number,
-  healthContribution: number,
+  businessCostsDeductible: number,
+  _healthContribution: number,
 ): number {
+  return calculateOwnerIncomeTaxSettlement(revenueNet, settings, businessCostsDeductible).accrued;
+}
+
+function getOwnerHealthTaxCreditRate(settings: SystemSettingsDto): number {
+  if (settings.taxForm === 'liniowy') {
+    return settings.healthRateOverrideEnabled
+      ? Math.max(0, settings.healthRateOverride)
+      : 0.049;
+  }
+  if (settings.taxForm === 'skala') {
+    return settings.healthRateOverrideEnabled
+      ? Math.max(0, settings.healthRateOverride)
+      : 0.09;
+  }
+  return 0;
+}
+
+export function calculateOwnerHealthTaxCredit(
+  taxableIncome: number,
+  settings: SystemSettingsDto,
+  taxAfterRelief: number,
+): number {
+  if (settings.taxForm === 'ryczalt' || taxAfterRelief <= 0 || taxableIncome <= 0) {
+    return 0;
+  }
+
+  const incomeBasedCredit = taxableIncome * getOwnerHealthTaxCreditRate(settings);
+
+  if (settings.taxForm === 'liniowy') {
+    return Math.round(
+      Math.min(
+        incomeBasedCredit,
+        LINEAR_HEALTH_TAX_DEDUCTION_MONTHLY_LIMIT_2026,
+        taxAfterRelief,
+      ),
+    );
+  }
+
+  return Math.round(Math.min(incomeBasedCredit, taxAfterRelief));
+}
+
+export interface OwnerIncomeTaxSettlement {
+  accrued: number;
+  healthCredit: number;
+  payable: number;
+}
+
+export function calculateOwnerIncomeTaxSettlement(
+  revenueNet: number,
+  settings: SystemSettingsDto,
+  businessCostsDeductible: number,
+): OwnerIncomeTaxSettlement {
   const { taxForm, ryczaltRate } = settings;
 
-  if (taxableRevenue <= 0) return 0;
+  if (revenueNet <= 0) {
+    return { accrued: 0, healthCredit: 0, payable: 0 };
+  }
 
   switch (taxForm) {
     case 'ryczalt': {
+      const healthContribution = calculateOwnerHealthContribution(
+        revenueNet,
+        settings,
+        businessCostsDeductible,
+      );
       const healthRevenueDeduction = healthContribution * 0.5;
-      const base = Math.max(0, taxableRevenue - healthRevenueDeduction);
-      return base * ryczaltRate;
+      const base = Math.max(0, revenueNet - healthRevenueDeduction);
+      const payable = roundOwnerTax(base * ryczaltRate);
+      return { accrued: payable, healthCredit: 0, payable };
     }
 
     case 'liniowy': {
-      const healthDeduction = Math.min(
-        healthContribution,
-        LINEAR_HEALTH_TAX_DEDUCTION_MONTHLY_LIMIT_2026,
+      const taxableIncome = calculateOwnerTaxableIncome(
+        revenueNet,
+        settings,
+        businessCostsDeductible,
       );
-      const base =
-        taxableRevenue - employeeCostsDeductible - settings.zusMonthly - healthDeduction;
-      return Math.max(0, base * PIT_LINEAR_RATE);
+      const accrued = roundOwnerTax(taxableIncome * PIT_LINEAR_RATE);
+      const healthCredit = calculateOwnerHealthTaxCredit(taxableIncome, settings, accrued);
+      const payable = roundOwnerTax(Math.max(0, accrued - healthCredit));
+      return { accrued, healthCredit, payable };
     }
 
     case 'skala': {
-      const monthlyFree = PIT_FREE_AMOUNT_ANNUAL / 12;
-      const monthlyFirstLimit = PIT_FIRST_BRACKET_LIMIT_ANNUAL / 12;
-      const base =
-        taxableRevenue - employeeCostsDeductible - settings.zusMonthly - monthlyFree;
-      if (base <= 0) return 0;
-      if (base <= monthlyFirstLimit) {
-        return base * PIT_FIRST_BRACKET_RATE;
-      }
-      const firstPart = monthlyFirstLimit * PIT_FIRST_BRACKET_RATE;
-      const secondPart = (base - monthlyFirstLimit) * PIT_SECOND_BRACKET_RATE;
-      return firstPart + secondPart;
+      const taxableIncome = calculateOwnerTaxableIncome(
+        revenueNet,
+        settings,
+        businessCostsDeductible,
+      );
+      const taxBeforeRelief = calculateProgressivePitMonthly(taxableIncome);
+      const kwotaWolnaRelief =
+        calculateKwotaWolnaReliefAnnual(taxableIncome * 12) / 12;
+      const accrued = roundOwnerTax(Math.max(0, taxBeforeRelief - kwotaWolnaRelief));
+      const healthCredit = calculateOwnerHealthTaxCredit(taxableIncome, settings, accrued);
+      const payable = roundOwnerTax(Math.max(0, accrued - healthCredit));
+      return { accrued, healthCredit, payable };
     }
 
     default:
-      return 0;
+      return { accrued: 0, healthCredit: 0, payable: 0 };
   }
 }
 
 export function calculateOwnerHealthContribution(
   revenueNet: number,
   settings: SystemSettingsDto,
-  employeeCostsDeductible: number,
+  businessCostsDeductible: number,
 ): number {
   if (settings.healthContributionMode === 'manual') {
     return Math.max(0, settings.healthContributionManualMonthly);
@@ -111,7 +214,11 @@ export function calculateOwnerHealthContribution(
   const effectiveRate = settings.healthRateOverrideEnabled
     ? Math.max(0, settings.healthRateOverride)
     : baseRate;
-  const monthlyIncomeBase = Math.max(0, revenueNet - employeeCostsDeductible - settings.zusMonthly);
+  const monthlyIncomeBase = calculateOwnerTaxableIncome(
+    revenueNet,
+    settings,
+    businessCostsDeductible,
+  );
   const calculated = monthlyIncomeBase * effectiveRate;
   return Math.max(HEALTH_MIN_MONTHLY_2026, calculated);
 }

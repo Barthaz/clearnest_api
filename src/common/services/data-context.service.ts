@@ -4,6 +4,7 @@ import {
   mapCustomHoliday,
   mapEmployee,
   mapFacility,
+  mapFacilityContract,
   mapFacilitySkipDay,
   mapSettings,
   mapShift,
@@ -11,7 +12,9 @@ import {
 import type {
   CustomHolidayDto,
   EmployeeDto,
+  FacilityContractDto,
   FacilityDto,
+  FacilityScheduleInput,
   FacilitySkipDayDto,
   ShiftDto,
   SystemSettingsDto,
@@ -25,6 +28,27 @@ export class DataContextService {
   async getFacilities(): Promise<FacilityDto[]> {
     const rows = await this.prisma.facility.findMany({ orderBy: { name: 'asc' } });
     return rows.map(mapFacility);
+  }
+
+  async getFacilityContracts(): Promise<FacilityContractDto[]> {
+    const rows = await this.prisma.facilityContract.findMany({
+      orderBy: [{ facilityId: 'asc' }, { startDate: 'asc' }],
+    });
+    return rows.map(mapFacilityContract);
+  }
+
+  async getFacilityScheduleInputs(): Promise<FacilityScheduleInput[]> {
+    const rows = await this.prisma.facility.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        contracts: { orderBy: { startDate: 'asc' } },
+      },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      contracts: row.contracts.map(mapFacilityContract),
+    }));
   }
 
   async getEmployees(): Promise<EmployeeDto[]> {
@@ -70,8 +94,18 @@ export class DataContextService {
   }
 
   async loadAppContext(monthKey?: string) {
-    const [facilities, employees, settings, customHolidays, facilitySkips] = await Promise.all([
+    const [
+      facilities,
+      facilityScheduleInputs,
+      facilityContracts,
+      employees,
+      settings,
+      customHolidays,
+      facilitySkips,
+    ] = await Promise.all([
       this.getFacilities(),
+      this.getFacilityScheduleInputs(),
+      this.getFacilityContracts(),
       this.getEmployees(),
       this.getSettings(),
       this.getCustomHolidays(),
@@ -80,6 +114,15 @@ export class DataContextService {
 
     const shifts = monthKey ? await this.getShiftsForMonth(monthKey) : await this.getShifts();
 
-    return { facilities, employees, settings, customHolidays, facilitySkips, shifts };
+    return {
+      facilities,
+      facilityScheduleInputs,
+      facilityContracts,
+      employees,
+      settings,
+      customHolidays,
+      facilitySkips,
+      shifts,
+    };
   }
 }

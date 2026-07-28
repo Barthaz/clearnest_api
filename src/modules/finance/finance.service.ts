@@ -15,6 +15,7 @@ export class FinanceService {
     return calculateMonthlyReport(
       month,
       ctx.facilities,
+      ctx.facilityContracts,
       ctx.employees,
       ctx.settings,
       ctx.shifts,
@@ -26,6 +27,7 @@ export class FinanceService {
     return calculateDashboardKpis(
       month,
       ctx.facilities,
+      ctx.facilityContracts,
       ctx.employees,
       ctx.settings,
       ctx.shifts,

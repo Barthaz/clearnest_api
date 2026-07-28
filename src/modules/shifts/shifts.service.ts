@@ -36,7 +36,7 @@ export class ShiftsService {
       month,
       needsSync: needsScheduleSync(
         month,
-        ctx.facilities,
+        ctx.facilityScheduleInputs,
         ctx.shifts,
         ctx.customHolidays,
         ctx.facilitySkips,
@@ -48,7 +48,7 @@ export class ShiftsService {
     const ctx = await this.dataContext.loadAppContext();
     const generated = generateShiftsForMonth(
       month,
-      ctx.facilities,
+      ctx.facilityScheduleInputs,
       ctx.shifts.filter((s) => s.date.startsWith(month)),
       ctx.customHolidays,
       ctx.facilitySkips,

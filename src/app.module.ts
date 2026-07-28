@@ -8,6 +8,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { FacilityContractsModule } from './modules/facility-contracts/facility-contracts.module';
 import { FacilitiesModule } from './modules/facilities/facilities.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { SettingsModule } from './modules/settings/settings.module';
@@ -28,6 +29,7 @@ import { SyncModule } from './modules/sync/sync.module';
     AuthModule,
     UsersModule,
     FacilitiesModule,
+    FacilityContractsModule,
     EmployeesModule,
     SettingsModule,
     ShiftsModule,

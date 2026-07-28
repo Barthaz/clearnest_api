@@ -1,15 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import {
-  ArrayNotEmpty,
-  IsArray,
-  IsIn,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Min,
-} from 'class-validator';
-import type { Weekday } from '../../../domain/types';
+import { Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
+import { CreateFacilityContractDto } from '../../facility-contracts/dto/facility-contract.dto';
 
 export class CreateFacilityDto {
   @ApiProperty()
@@ -29,25 +21,11 @@ export class CreateFacilityDto {
   @Min(0)
   areaM2!: number;
 
-  @ApiProperty({ type: [Number], example: [0, 2, 4] })
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsIn([0, 1, 2, 3, 4, 5, 6], { each: true })
-  cleaningDays!: Weekday[];
-
-  @ApiProperty()
-  @IsNumber()
-  @Min(0.1)
-  hoursPerVisit!: number;
-
-  @ApiProperty({ example: '08:00' })
-  @IsString()
-  startTime!: string;
-
-  @ApiProperty()
-  @IsNumber()
-  @Min(0)
-  monthlyRateGross!: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateFacilityContractDto)
+  initialContract?: CreateFacilityContractDto;
 }
 
 export class UpdateFacilityDto extends PartialType(CreateFacilityDto) {
@@ -55,4 +33,8 @@ export class UpdateFacilityDto extends PartialType(CreateFacilityDto) {
   @IsOptional()
   @IsUUID()
   id?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  initialContract?: never;
 }

@@ -3,6 +3,7 @@ import type {
   Employee,
   EmploymentForm,
   Facility,
+  FacilityContract,
   FacilitySkipDay,
   Shift,
   ShiftStatus,
@@ -12,6 +13,7 @@ import type {
 import type {
   CustomHolidayDto,
   EmployeeDto,
+  FacilityContractDto,
   FacilityDto,
   FacilitySkipDayDto,
   ShiftDto,
@@ -43,12 +45,23 @@ export function mapFacility(f: Facility): FacilityDto {
     name: f.name,
     address: f.address,
     areaM2: toNumber(f.areaM2),
-    cleaningDays: f.cleaningDays as Weekday[],
-    visitsPerWeek: f.visitsPerWeek,
-    hoursPerVisit: toNumber(f.hoursPerVisit),
-    startTime: f.startTime,
-    monthlyRateGross: toNumber(f.monthlyRateGross),
     updatedAt: toIsoString(f.updatedAt),
+  };
+}
+
+export function mapFacilityContract(c: FacilityContract): FacilityContractDto {
+  return {
+    id: c.id,
+    facilityId: c.facilityId,
+    startDate: formatDateFromDb(c.startDate),
+    endDate: c.endDate ? formatDateFromDb(c.endDate) : undefined,
+    monthlyRateGross: toNumber(c.monthlyRateGross),
+    hoursPerVisit: toNumber(c.hoursPerVisit),
+    startTime: c.startTime,
+    endTime: c.endTime,
+    cleaningDays: c.cleaningDays as Weekday[],
+    visitsPerWeek: c.visitsPerWeek,
+    updatedAt: toIsoString(c.updatedAt),
   };
 }
 
