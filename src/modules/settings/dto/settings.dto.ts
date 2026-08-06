@@ -48,6 +48,14 @@ export class UpdateSettingsDto {
   @IsEnum(['ryczalt', 'skala', 'liniowy'])
   taxForm?: 'ryczalt' | 'skala' | 'liniowy';
 
+  @ApiPropertyOptional({
+    description:
+      'Uwzględniaj ulgę kwoty wolnej w zaliczkach miesięcznych (tylko skala; ~300 zł/mies.)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  kwotaWolnaEnabled?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()

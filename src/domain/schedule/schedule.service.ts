@@ -290,6 +290,63 @@ export function saveShiftAssignment(shift: ShiftDto): { shift?: ShiftDto; error?
 
 
 
+/**
+ * Atomowy zapis: opcjonalna zmiana osoby + status saved w jednej operacji.
+ * Gdy employeeIdProvided=false, zachowuje dotychczasowe zachowanie (tylko status).
+ */
+export function saveShiftWithAssignee(
+
+  shiftId: string,
+
+  employeeId: string | undefined,
+
+  employeeIdProvided: boolean,
+
+  allShifts: ShiftDto[],
+
+  checkConflict: (
+
+    shiftId: string,
+
+    employeeId: string | undefined,
+
+    shifts: ShiftDto[],
+
+  ) => { conflict: boolean; message?: string },
+
+): { shift?: ShiftDto; error?: string } {
+
+  const shift = allShifts.find((s) => s.id === shiftId);
+
+  if (!shift) return { error: 'Nie znaleziono zmiany' };
+
+  if (!employeeIdProvided) {
+    return saveShiftAssignment(shift);
+  }
+
+  const nextEmployeeId = employeeId;
+  const employeeChanged =
+    (shift.employeeId ?? undefined) !== (nextEmployeeId ?? undefined);
+
+  if (shift.status === 'saved' && !employeeChanged) {
+    return { shift };
+  }
+
+  if (employeeChanged) {
+    const check = checkConflict(shiftId, nextEmployeeId, allShifts);
+    if (check.conflict) {
+      return { error: check.message };
+    }
+  }
+
+  return {
+    shift: { ...shift, employeeId: nextEmployeeId, status: 'saved' },
+  };
+
+}
+
+
+
 export function unsaveShiftAssignment(shift: ShiftDto): ShiftDto {
 
   if (shift.status !== 'saved') return shift;

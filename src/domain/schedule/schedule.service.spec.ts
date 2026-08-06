@@ -2,6 +2,7 @@ import type { FacilityContractDto, FacilityScheduleInput } from '../types';
 import {
   getExpectedShiftKeysForMonth,
   needsScheduleSync,
+  saveShiftWithAssignee,
 } from './schedule.service';
 
 function contract(
@@ -113,5 +114,42 @@ describe('schedule.service', () => {
     ];
 
     expect(needsScheduleSync('2026-09', inputs, shifts, [], [])).toBe(true);
+  });
+});
+
+describe('saveShiftWithAssignee', () => {
+  const baseShift = {
+    id: 'shift-1',
+    facilityId: 'fac-1',
+    employeeId: 'emp-a',
+    date: '2026-09-01',
+    hours: 3,
+    startTime: '08:00',
+    endTime: '11:00',
+    status: 'scheduled' as const,
+  };
+
+  const noConflict = () => ({ conflict: false as const });
+
+  it('saves status only when employeeId is not provided', () => {
+    const result = saveShiftWithAssignee('shift-1', undefined, false, [baseShift], noConflict);
+    expect(result.shift?.status).toBe('saved');
+    expect(result.shift?.employeeId).toBe('emp-a');
+  });
+
+  it('atomically assigns new employee and saves', () => {
+    const result = saveShiftWithAssignee('shift-1', 'emp-b', true, [baseShift], noConflict);
+    expect(result.error).toBeUndefined();
+    expect(result.shift?.employeeId).toBe('emp-b');
+    expect(result.shift?.status).toBe('saved');
+  });
+
+  it('rejects when conflict check fails', () => {
+    const result = saveShiftWithAssignee('shift-1', 'emp-b', true, [baseShift], () => ({
+      conflict: true,
+      message: 'Kolizja',
+    }));
+    expect(result.error).toBe('Kolizja');
+    expect(result.shift).toBeUndefined();
   });
 });

@@ -9,10 +9,21 @@ export class GenerateShiftsDto {
 }
 
 export class AssignShiftDto {
-  @ApiPropertyOptional({ description: 'Brak = właściciel / unassigned' })
+  @ApiPropertyOptional({ description: 'Brak = właściciel / unassigned', nullable: true })
   @IsOptional()
   @IsUUID()
-  employeeId?: string;
+  employeeId?: string | null;
+}
+
+export class SaveShiftDto {
+  @ApiPropertyOptional({
+    description:
+      'Opcjonalne przypisanie przy zapisie (atomowo z statusem saved). null = właściciel.',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string | null;
 }
 
 export class UpdateShiftHoursDto {

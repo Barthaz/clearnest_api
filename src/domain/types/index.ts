@@ -86,6 +86,8 @@ export interface SystemSettingsDto {
   healthRateOverrideEnabled: boolean;
   healthRateOverride: number;
   taxForm: TaxForm;
+  /** Ulga kwoty wolnej od podatku (30 000 zł/rok) — tylko skala podatkowa */
+  kwotaWolnaEnabled: boolean;
   ryczaltRate: number;
   additionalCosts: number;
   vatExemptionThreshold: number;
@@ -175,6 +177,8 @@ export interface MonthlyFinanceReport {
   healthContributionOwner: number;
   incomeTax: number;
   incomeTaxHealthCredit: number;
+  /** Ulga kwoty wolnej (skala, gdy włączona); 0 dla ryczałtu/liniowego */
+  incomeTaxKwotaWolnaRelief: number;
   additionalCosts: number;
   totalCosts: number;
   profitGross: number;
@@ -217,6 +221,7 @@ export const DEFAULT_SETTINGS: Omit<SystemSettingsDto, 'updatedAt'> & { updatedA
   healthRateOverrideEnabled: false,
   healthRateOverride: 0.09,
   taxForm: 'ryczalt',
+  kwotaWolnaEnabled: false,
   ryczaltRate: 0.085,
   additionalCosts: 0,
   vatExemptionThreshold: 200000,

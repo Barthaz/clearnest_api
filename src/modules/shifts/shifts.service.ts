@@ -10,13 +10,14 @@ import {
   clearSavedShiftAssignment,
   generateShiftsForMonth,
   needsScheduleSync,
-  saveShiftAssignment,
+  saveShiftWithAssignee,
   unsaveShiftAssignment,
   updateShiftActualHours,
 } from '../../domain/schedule/schedule.service';
 import type { AuthUserDto, ShiftDto } from '../../domain/types';
 import { DataContextService } from '../../common/services/data-context.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import type { SaveShiftDto } from './dto/shift.dto';
 
 @Injectable()
 export class ShiftsService {
@@ -68,6 +69,42 @@ export class ShiftsService {
     }
 
     const shift = result.shift!;
+    // Nie nadpisuj, jeśli równoległy save już zablokował zmianę
+    const updated = await this.prisma.shift.updateMany({
+      where: { id: shiftId, NOT: { status: 'saved' } },
+      data: {
+        employeeId: shift.employeeId ?? null,
+        status: shift.status,
+      },
+    });
+
+    if (updated.count === 0) {
+      return { error: 'Przypisanie jest zapisane. Cofnij zapis, aby je zmienić.' };
+    }
+
+    const row = await this.prisma.shift.findUnique({ where: { id: shiftId } });
+    return { shift: row ? mapShift(row) : shift };
+  }
+
+  async save(shiftId: string, dto: SaveShiftDto = {}) {
+    const employeeIdProvided = Object.prototype.hasOwnProperty.call(dto, 'employeeId');
+    const allShifts = employeeIdProvided
+      ? await this.dataContext.getShifts()
+      : [await this.findShiftOrThrow(shiftId)];
+
+    const result = saveShiftWithAssignee(
+      shiftId,
+      dto.employeeId ?? undefined,
+      employeeIdProvided,
+      allShifts,
+      wouldCreateConflict,
+    );
+
+    if (result.error) {
+      return { error: result.error };
+    }
+
+    const shift = result.shift!;
     await this.prisma.shift.update({
       where: { id: shiftId },
       data: {
@@ -77,19 +114,6 @@ export class ShiftsService {
     });
 
     return { shift };
-  }
-
-  async save(shiftId: string) {
-    const shift = await this.findShiftOrThrow(shiftId);
-    const result = saveShiftAssignment(shift);
-    if (result.error) return { error: result.error };
-
-    await this.prisma.shift.update({
-      where: { id: shiftId },
-      data: { status: result.shift!.status },
-    });
-
-    return { shift: result.shift };
   }
 
   async unsave(shiftId: string) {

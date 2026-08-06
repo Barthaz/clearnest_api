@@ -168,6 +168,7 @@ model SystemSettings {
   healthRateOverrideEnabled       Boolean                @default(false) @map("health_rate_override_enabled")
   healthRateOverride              Decimal                @default(0.09) @map("health_rate_override") @db.Decimal(5, 4)
   taxForm                         TaxForm                @default(ryczalt) @map("tax_form")
+  kwotaWolnaEnabled               Boolean                @default(false) @map("kwota_wolna_enabled")
   ryczaltRate                     Decimal                @default(0.085) @map("ryczalt_rate") @db.Decimal(5, 4)
   additionalCosts                 Decimal                @default(500) @map("additional_costs") @db.Decimal(10, 2)
   vatExemptionThreshold           Decimal                @default(200000) @map("vat_exemption_threshold") @db.Decimal(12, 2)

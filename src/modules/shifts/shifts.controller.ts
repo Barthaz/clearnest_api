@@ -6,6 +6,7 @@ import type { AuthUserDto } from '../../domain/types';
 import {
   AssignShiftDto,
   GenerateShiftsDto,
+  SaveShiftDto,
   UpdateShiftHoursDto,
 } from './dto/shift.dto';
 import { ShiftsService } from './shifts.service';
@@ -42,14 +43,14 @@ export class ShiftsController {
   @Roles('ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Przypisz pracownika do zmiany' })
   assign(@Param('id') id: string, @Body() dto: AssignShiftDto) {
-    return this.shiftsService.assign(id, dto.employeeId);
+    return this.shiftsService.assign(id, dto.employeeId ?? undefined);
   }
 
   @Patch(':id/save')
   @Roles('ADMIN', 'MANAGER')
-  @ApiOperation({ summary: 'Zapisz przypisanie zmiany' })
-  save(@Param('id') id: string) {
-    return this.shiftsService.save(id);
+  @ApiOperation({ summary: 'Zapisz przypisanie zmiany (opcjonalnie z osobą)' })
+  save(@Param('id') id: string, @Body() dto: SaveShiftDto) {
+    return this.shiftsService.save(id, dto);
   }
 
   @Patch(':id/unsave')

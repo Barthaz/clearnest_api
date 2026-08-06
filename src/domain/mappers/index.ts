@@ -115,6 +115,7 @@ export function mapSettings(s: SystemSettings): SystemSettingsDto {
     healthRateOverrideEnabled: s.healthRateOverrideEnabled,
     healthRateOverride: toNumber(s.healthRateOverride),
     taxForm: s.taxForm as SystemSettingsDto['taxForm'],
+    kwotaWolnaEnabled: s.kwotaWolnaEnabled,
     ryczaltRate: toNumber(s.ryczaltRate),
     additionalCosts: toNumber(s.additionalCosts),
     vatExemptionThreshold: toNumber(s.vatExemptionThreshold),

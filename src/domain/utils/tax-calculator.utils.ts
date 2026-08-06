@@ -130,6 +130,7 @@ export function calculateOwnerHealthTaxCredit(
 
 export interface OwnerIncomeTaxSettlement {
   accrued: number;
+  kwotaWolnaRelief: number;
   healthCredit: number;
   payable: number;
 }
@@ -142,7 +143,7 @@ export function calculateOwnerIncomeTaxSettlement(
   const { taxForm, ryczaltRate } = settings;
 
   if (revenueNet <= 0) {
-    return { accrued: 0, healthCredit: 0, payable: 0 };
+    return { accrued: 0, kwotaWolnaRelief: 0, healthCredit: 0, payable: 0 };
   }
 
   switch (taxForm) {
@@ -155,7 +156,7 @@ export function calculateOwnerIncomeTaxSettlement(
       const healthRevenueDeduction = healthContribution * 0.5;
       const base = Math.max(0, revenueNet - healthRevenueDeduction);
       const payable = roundOwnerTax(base * ryczaltRate);
-      return { accrued: payable, healthCredit: 0, payable };
+      return { accrued: payable, kwotaWolnaRelief: 0, healthCredit: 0, payable };
     }
 
     case 'liniowy': {
@@ -167,7 +168,7 @@ export function calculateOwnerIncomeTaxSettlement(
       const accrued = roundOwnerTax(taxableIncome * PIT_LINEAR_RATE);
       const healthCredit = calculateOwnerHealthTaxCredit(taxableIncome, settings, accrued);
       const payable = roundOwnerTax(Math.max(0, accrued - healthCredit));
-      return { accrued, healthCredit, payable };
+      return { accrued, kwotaWolnaRelief: 0, healthCredit, payable };
     }
 
     case 'skala': {
@@ -177,16 +178,22 @@ export function calculateOwnerIncomeTaxSettlement(
         businessCostsDeductible,
       );
       const taxBeforeRelief = calculateProgressivePitMonthly(taxableIncome);
-      const kwotaWolnaRelief =
-        calculateKwotaWolnaReliefAnnual(taxableIncome * 12) / 12;
+      const kwotaWolnaRelief = settings.kwotaWolnaEnabled
+        ? calculateKwotaWolnaReliefAnnual(taxableIncome * 12) / 12
+        : 0;
       const accrued = roundOwnerTax(Math.max(0, taxBeforeRelief - kwotaWolnaRelief));
       const healthCredit = calculateOwnerHealthTaxCredit(taxableIncome, settings, accrued);
       const payable = roundOwnerTax(Math.max(0, accrued - healthCredit));
-      return { accrued, healthCredit, payable };
+      return {
+        accrued,
+        kwotaWolnaRelief: roundOwnerTax(kwotaWolnaRelief),
+        healthCredit,
+        payable,
+      };
     }
 
     default:
-      return { accrued: 0, healthCredit: 0, payable: 0 };
+      return { accrued: 0, kwotaWolnaRelief: 0, healthCredit: 0, payable: 0 };
   }
 }
 

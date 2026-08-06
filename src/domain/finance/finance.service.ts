@@ -512,6 +512,8 @@ export function calculateMonthlyReport(
 
     incomeTaxHealthCredit: ownerTax.healthCredit,
 
+    incomeTaxKwotaWolnaRelief: ownerTax.kwotaWolnaRelief,
+
     additionalCosts,
 
     totalCosts,
