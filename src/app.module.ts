@@ -17,6 +17,7 @@ import { HolidaysModule } from './modules/holidays/holidays.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './modules/health/health.module';
 import { SyncModule } from './modules/sync/sync.module';
+import { OffersModule } from './modules/offers/offers.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SyncModule } from './modules/sync/sync.module';
     FinanceModule,
     HealthModule,
     SyncModule,
+    OffersModule,
   ],
   controllers: [],
   providers: [

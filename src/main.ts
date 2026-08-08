@@ -28,6 +28,10 @@ async function bootstrap() {
     if (allowed && origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader(
+        'Access-Control-Expose-Headers',
+        'Content-Disposition, Content-Type, Content-Length',
+      );
       res.setHeader('Vary', 'Origin');
     }
 
@@ -63,6 +67,7 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
     optionsSuccessStatus: 204,
   });
 
@@ -90,7 +95,11 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup(swaggerPath, app, document);
+    SwaggerModule.setup(swaggerPath, app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
   }
 
   const port = configService.get<number>('port') ?? 3000;
